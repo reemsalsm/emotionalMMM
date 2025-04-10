@@ -56,28 +56,32 @@ pip install flask fer opencv-python
 ```python
 from flask import Flask, jsonify
 from fer import FER
-import cv2
+from PIL import Image
+import subprocess
 
 app = Flask(__name__)
-emotion_detector = FER()
+detector = FER()
 
-@app.route('/emotion')
-def emotion():
-    cap = cv2.VideoCapture(0)
-    ret, frame = cap.read()
-    cap.release()
+@app.route('/emotion', methods=['GET'])
+def detect_emotion():
+    # Capture image with raspistill
+    img_path = "capture.jpg"
+    subprocess.run(["raspistill", "-o", img_path, "-t", "1000"])
 
-    result = emotion_detector.top_emotion(frame)
+    # Use Pillow to open the image
+    img = Image.open(img_path)
+
+    # FER for emotion analysis
+    result = detector.top_emotion(img)
     if result:
         emotion, score = result
+        return jsonify({'emotion': emotion, 'score': score})
     else:
-        emotion, score = "neutral", 0
-
-    return jsonify({'emotion': emotion, 'score': score})
+        return jsonify({'emotion': 'No Face Detected'})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
-```
+
 
 ---
 
